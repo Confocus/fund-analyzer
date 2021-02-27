@@ -5,15 +5,32 @@ import execjs
 import struct
 import sys
 
+class CManagerInfo:
+    name = ""
+    star = 0
+    work_time = ""
+    id = ""
+    
+    def __init__(self):
+        return
+    
+    def clear(self):
+        self.name = ""
+        self.star = 0
+        self.work_time = ""
+        self.id = ""        
+
 class CFundInfo:
     fS_name = ""
     fS_code = ""
     fund_sourceRate = 0.0   
     fund_Rate = 0.0         
     syl_1n = 0.0
-    syl_6y = 0.0;
+    syl_6y = 0.0
     syl_3y = 0.0
-    syl_1y = 0.0;   
+    syl_1y = 0.0
+    capital_scale = 0.0
+    manager_info = CManagerInfo()
     
     def __init__(self):
         return
@@ -83,8 +100,19 @@ def getFundAllInfo(fS_code):
     global_FundInfo.syl_3y = float(jsContent.eval('syl_3y'))
     global_FundInfo.syl_1y = float(jsContent.eval('syl_1y'))
     
+    capital_scale_dict = dict(jsContent.eval('Data_fluctuationScale'))
+    global_FundInfo.capital_scale = capital_scale_dict['series'][-1]['y']
+    
+    szManager = list(jsContent.eval('Data_currentFundManager'))
+    
+    global_FundInfo.manager_info.id = szManager[0]['id']
+    global_FundInfo.manager_info.name = szManager[0]['name']
+    global_FundInfo.manager_info.work_time = szManager[0]['workTime']
+    global_FundInfo.manager_info.star = szManager[0]['star']
+    
     all_fund_info = (global_FundInfo.fS_name, global_FundInfo.fund_sourceRate, global_FundInfo.fund_Rate,
-                     global_FundInfo.syl_1n, global_FundInfo.syl_6y, global_FundInfo.syl_3y, global_FundInfo.syl_1y)
+                     global_FundInfo.syl_1n, global_FundInfo.syl_6y, global_FundInfo.syl_3y, global_FundInfo.syl_1y,
+                     global_FundInfo.capital_scale)
     return all_fund_info
 
 def getFundName():
