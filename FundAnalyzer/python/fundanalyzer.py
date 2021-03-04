@@ -4,12 +4,13 @@ import time
 import execjs
 import struct
 import sys
+from bs4 import BeautifulSoup 
 
 class CManagerInfo:
-    name = ""
     star = 0
-    work_time = ""
     id = ""
+    name = ""
+    work_time = ""
     
     def __init__(self):
         return
@@ -30,7 +31,7 @@ class CFundInfo:
     syl_3y = 0.0
     syl_1y = 0.0
     capital_scale = 0.0
-    manager_info = CManagerInfo()
+    manager_infos = []
     
     def __init__(self):
         return
@@ -52,10 +53,17 @@ def getTest():
     print("Hello python\n");
     
 
-def getUrl(fscode):
+def getBaseInfoUrl(fscode):
     head = 'http://fund.eastmoney.com/pingzhongdata/'
     tail = '.js?v='+ time.strftime("%Y%m%d%H%M%S",time.localtime())
-    return head+fscode+tail
+    return head + fscode + tail
+
+def getPositionInfoUrl(fscode, topline, year, month):
+    head = 'http://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code='
+    part1 = '&topline='
+    part2 = '&year='
+    part3 = '&month='
+    return head + fscode + part1 + topline + part2 + year + part3 + month
 
 def getWorth(fscode):
     content = requests.get(getUrl(fscode))
@@ -86,7 +94,8 @@ def getFundAllInfo(fS_code):
 """
 
 def getFundAllInfo(fS_code):
-    content = requests.get(getUrl(fS_code))
+    content = requests.get(getBaseInfoUrl(fS_code))
+    global jsContent    
     jsContent = execjs.compile(content.text)
     global_FundInfo.fS_code = fS_code
     global_FundInfo.fS_name = jsContent.eval('fS_name')
@@ -103,17 +112,29 @@ def getFundAllInfo(fS_code):
     capital_scale_dict = dict(jsContent.eval('Data_fluctuationScale'))
     global_FundInfo.capital_scale = capital_scale_dict['series'][-1]['y']
     
-    szManager = list(jsContent.eval('Data_currentFundManager'))
     
-    global_FundInfo.manager_info.id = szManager[0]['id']
-    global_FundInfo.manager_info.name = szManager[0]['name']
-    global_FundInfo.manager_info.work_time = szManager[0]['workTime']
-    global_FundInfo.manager_info.star = szManager[0]['star']
     
     all_fund_info = (global_FundInfo.fS_name, global_FundInfo.fund_sourceRate, global_FundInfo.fund_Rate,
                      global_FundInfo.syl_1n, global_FundInfo.syl_6y, global_FundInfo.syl_3y, global_FundInfo.syl_1y,
                      global_FundInfo.capital_scale)
     return all_fund_info
+
+def getPositionInfo(fsCode, topline, year, month):
+    content = requests.get(getPositionInfoUrl(fsCode, topline, year, month))
+    jsPositionContent = execjs.compile(content.text)
+    dictPositionContent = dict(jsPositionContent.eval('apidata'))
+    PositionContent = dictPositionContent['content']
+    soupPositionContent = BeautifulSoup(PositionContent, "html.parser")
+    
+    return soupPositionContent
+    
+def getCurrManagerInfo():
+    szManager = list(jsContent.eval('Data_currentFundManager'))
+    for manager in szManager:
+        manager_info = (manager['star'], manager['id'], manager['name'], manager['workTime'])
+        global_FundInfo.manager_infos.append(manager_info)
+    return global_FundInfo.manager_infos
+    
 
 def getFundName():
     return global_FundInfo.fS_name
@@ -125,4 +146,6 @@ def getFundRate():
     return global_FundInfo.fund_Rate
     
 if __name__ == '__main__':
+    getPositionInfo('003511', '25', '2020', '12')
     getFundAllInfo('003511')
+    getCurrManagerInfo()
